@@ -1,0 +1,916 @@
+{
+  "name": "Expense Tracker",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.output;\n\nconst entries = raw.trim().split('\\n\\n');\n\nconst result = entries.map(entry => {\n  const lines = entry.split('\\n');\n\n  let data = {};\n  lines.forEach(line => {\n    const [key, ...valueParts] = line.split(':');\n    const value = valueParts.join(':').trim();\n    data[key.trim().toLowerCase()] = value\n  });\n\n  return data;\n});\n\nreturn result.map(item => ({ json: item }))"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        144,
+        -112
+      ],
+      "id": "b4f09dc9-7c2e-46cf-bf81-7f474ff9eea8",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=input: {{ $json.message.text || $json.message.photo }}\ntanggal: {{ $now }}\nchat id: {{ $json.message.from.id }}",
+        "options": {
+          "systemMessage": "=Tentukan apakah input berisi struk/laporan pembelian atau hanya pertanyaan tentang barang yang pernah dibeli.\n\nJika pertanyaan → keluarkan hanya: tanya\nJika struk/laporan → ekstrak setiap item dalam format berikut (satu blok per item, tanpa tambahan teks):\n\ndate: DD/MM/YYYY  \nshop: [nama toko, \"-\" jika tidak ada]  \nname: [nama produk jelas + berat jika tersedia, bukan kode]  \ntype: [Energy|Food|Bill]  \nunit: [Kg|Liter|pcs|dll]  \nprice_per_unit: [angka]  \nqty: [angka, default 1 jika tidak disebut]  \ntotal: [price_per_unit × qty]  \nquartal: Q[1-4]/YYYY  \n\nAturan:\n\nGunakan tanggal pembelian dari struk (format DD/MM/YYYY).\nJika toko tidak jelas, isi shop: Unknown.\nJangan tambahkan penjelasan, komentar, atau teks di luar format di atas."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        -496,
+        352
+      ],
+      "id": "1484e6cf-5f4a-48f4-9cb3-a10164f5124c",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "761ca8b8-30f6-4a4a-9b80-11c30f908a6f",
+              "leftValue": "={{ $json.output }}",
+              "rightValue": "tanya",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -160,
+        288
+      ],
+      "id": "b89a4c1d-617f-4c6a-a99d-c5027ac03969",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Input: {{ $('Telegram Start').item.json.message.text }}",
+        "options": {
+          "systemMessage": "=User menanyakan informasi tentang barang yang sudah tercatat di spreadsheet, seperti:\n\nTempat/tanggal pembelian terakhir\nHarga terakhir\nHarga termurah/termahal dan lokasinya\n\nJawab dengan data yang relevan dan format text yang baik untuk pesan di telegram.",
+          "batching": {
+            "delayBetweenBatches": 0
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        208,
+        672
+      ],
+      "id": "06812b93-922f-4c57-8c24-ef4f1e39984e",
+      "name": "Tanya",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Start').first().json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        288
+      ],
+      "id": "309a12d7-c35b-4ab6-a278-1f43af93aacb",
+      "name": "Telegram",
+      "webhookId": "247f1503-fe78-44e8-a67d-1490f565af85",
+      "credentials": {
+        "telegramApi": {
+          "id": "S7S6SdfdcMTdO1eb",
+          "name": "Dhevan"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        512,
+        288
+      ],
+      "id": "8dfc2f64-5fed-4238-b0f1-6e23997ccd8f",
+      "name": "Merge",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -800,
+        352
+      ],
+      "id": "b36a9bc0-f3ee-40d4-a936-41c880299f86",
+      "name": "Telegram Start",
+      "webhookId": "c567b68f-4264-4d78-bb39-26aa9284b1cb",
+      "credentials": {
+        "telegramApi": {
+          "id": "S7S6SdfdcMTdO1eb",
+          "name": "Dhevan"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil hanya item pertama (asumsi: semua data dalam satu output)\nconst rawInput = $input.first().json.output;\n\n// Pisahkan tiap blok (dipisah oleh dua newline: \\n\\n)\nconst blocks = rawInput.trim().split('\\n\\n');\n\nconst messages = blocks.map(block => {\n  const lines = block.split('\\n');\n  const parsed = {};\n\n  lines.forEach(line => {\n    // Hindari baris kosong\n    if (line.trim() === '') return;\n    \n    const colonIndex = line.indexOf(': ');\n    if (colonIndex === -1) return; // lewati jika format salah\n\n    const key = line.substring(0, colonIndex).trim();\n    const value = line.substring(colonIndex + 2).trim(); // +2 untuk lewati \": \"\n    parsed[key] = value;\n  });\n\n  // Pastikan semua field yang dibutuhkan ada\n  if (!parsed.name || !parsed.qty || !parsed.unit || !parsed.total) {\n    return null;\n  }\n\n  const total = parseInt(parsed.total) || 0;\n  return `• ${parsed.name} (${parsed.qty} ${parsed.unit}) — Rp ${total.toLocaleString('id-ID')}`;\n}).filter(msg => msg !== null); // Hapus yang gagal parse\n\nconst fullMessage = `🧾 *Pengeluaran Hari Ini*\\n\\n${messages.join('\\n')}`;\n\nreturn [{ json: { output: fullMessage } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        208
+      ],
+      "id": "5adca209-e4ca-47fa-b87b-685fd8fbbc34",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -256,
+        1040
+      ],
+      "id": "c5b2c760-71ae-47e9-b2cd-946bc98eb19e",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QQVGfduE2DC4fV7O",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58",
+          "mode": "list",
+          "cachedResultName": "Serba Serbi duit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Pengeluaran ${$json.quartal}` }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        432,
+        -112
+      ],
+      "id": "d8cbff42-ac54-4d82-8183-654bff4bbafe",
+      "name": "Get row(s) in sheet",
+      "retryOnFail": false,
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hgoafRtE1NB2sZbl",
+          "name": "dhevanthareza@gmail.com"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58",
+          "mode": "list",
+          "cachedResultName": "Serba Serbi duit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Pengeluaran ${ $('Code').first().json.quartal }` }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Tanggal": "={{ $json.date }}",
+            "Shop": "={{ $json.shop }}",
+            "Name": "={{ $json.name }}",
+            "Jenis": "={{ $json.type }}",
+            "Unit": "={{ $json.unit }}",
+            "Price Per Unit": "={{ $json.price_per_unit }}",
+            "Qty": "={{ $json.qty }}",
+            "Total": "={{ $json.total }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "No",
+              "displayName": "No",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tanggal",
+              "displayName": "Tanggal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Shop",
+              "displayName": "Shop",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Name",
+              "displayName": "Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Jenis",
+              "displayName": "Jenis",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Unit",
+              "displayName": "Unit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Price Per Unit",
+              "displayName": "Price Per Unit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Qty",
+              "displayName": "Qty",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Total",
+              "displayName": "Total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.6,
+      "position": [
+        2496,
+        -96
+      ],
+      "id": "4e5c4aab-ca7c-4167-9510-9fd5c8eb99ed",
+      "name": "Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hgoafRtE1NB2sZbl",
+          "name": "dhevanthareza@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "documentId": {
+          "__rl": true,
+          "value": "1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58",
+          "mode": "list",
+          "cachedResultName": "Serba Serbi duit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58/edit?usp=drivesdk"
+        },
+        "title": "={{ `Pengeluaran ${$('Code').first().json.quartal}` }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1280,
+        -320
+      ],
+      "id": "2c3c8b03-e40d-4fde-b577-cffc3b3a5fc9",
+      "name": "Create sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hgoafRtE1NB2sZbl",
+          "name": "dhevanthareza@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "3ef6af74-664d-4466-bdf0-2f47aba49f60",
+              "leftValue": "={{ $json.error }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        640,
+        -112
+      ],
+      "id": "73d473d4-4ddc-4b1f-b3c4-dc0b7cd8bd44",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58",
+          "mode": "list",
+          "cachedResultName": "Serba Serbi duit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ `Pengeluaran ${$('Code').first().json.quartal}` }}",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "No"
+          ],
+          "schema": [
+            {
+              "id": "No",
+              "displayName": "No",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1888,
+        -320
+      ],
+      "id": "8b8aee85-f795-4df4-b87a-5b62af611300",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hgoafRtE1NB2sZbl",
+          "name": "dhevanthareza@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "59701cf7-4e46-485e-b33d-bb82bbfdb340",
+              "name": "=No",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "c129c97b-cfd6-4ad0-9d20-03a842b30627",
+              "name": "Tanggal",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "473075e8-5608-4ab9-9676-d7df609a1127",
+              "name": "Shop",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "29156f1d-e77c-4830-a9d6-1666928f7dc0",
+              "name": "Name",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "68fc00b0-04d9-466c-af6d-8bba1805a66f",
+              "name": "Jenis",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "1b7ad15d-afb2-4fb6-9dbb-d0e0d79dea24",
+              "name": "Unit",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "e3d5e109-1d72-40ad-b4d3-836373290a48",
+              "name": "Price Per Unit",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "37582053-0f2a-42c3-83ba-6bba86a7873e",
+              "name": "Qty",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "a5a509fb-e673-4322-aadf-257a6135b27f",
+              "name": "Total",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1616,
+        -320
+      ],
+      "id": "ed2bfa4f-1976-4c94-b8c7-eee14a68d3db",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Code').all()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2096,
+        -320
+      ],
+      "id": "465d9401-9fc1-44bd-af45-a343169f9266",
+      "name": "Parser"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $('Code').all()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        -96
+      ],
+      "id": "fc614a5a-de93-4ee1-ad12-b588536f7ac4",
+      "name": "Parser1"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58",
+          "mode": "list",
+          "cachedResultName": "Serba Serbi duit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ \n  (() => {\n    const d = new Date();\n    d.setMonth(d.getMonth() - 3); // Mundur 3 bulan ke belakang\n    const q = Math.ceil((d.getMonth() + 1) / 3);\n    const y = d.getFullYear();\n    return \"Pengeluaran Q\" + q + \"/\" + y;\n  })()\n}}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        304,
+        1008
+      ],
+      "id": "45207171-1a07-45ab-afd8-cb80d7644510",
+      "name": "Baca barang kuartal kemarin",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hgoafRtE1NB2sZbl",
+          "name": "dhevanthareza@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Membaca apa yang ada pada google sheets",
+        "documentId": {
+          "__rl": true,
+          "value": "1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58",
+          "mode": "list",
+          "cachedResultName": "Serba Serbi duit",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1cu_gkQdFzBk4iARNCrgyyYJxy0rnATEo3k_DtoPNH58/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "={{ \"Pengeluaran Q\" + Math.ceil((new Date().getMonth() + 1) / 3) + \"/\" + new Date().getFullYear() }}",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        512,
+        896
+      ],
+      "id": "254bab0c-860a-44b8-8834-8cb31d0989b6",
+      "name": "Baca barang kuartal ini",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "hgoafRtE1NB2sZbl",
+          "name": "dhevanthareza@gmail.com"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-2.0-flash-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        -416,
+        1008
+      ],
+      "id": "5a27f787-b774-484a-bc0b-e514b066a5b3",
+      "name": "OpenRouter Chat Model",
+      "credentials": {
+        "openRouterApi": {
+          "id": "4EMXR66ITBLupC5m",
+          "name": "OpenRouter account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Telegram Start": [
+      {
+        "json": {
+          "update_id": 47587355,
+          "message": {
+            "message_id": 156,
+            "from": {
+              "id": 282300931,
+              "is_bot": false,
+              "first_name": "Dhevan",
+              "last_name": "Muhamad Anthareza",
+              "username": "dhevanthareza",
+              "language_code": "en"
+            },
+            "chat": {
+              "id": 282300931,
+              "first_name": "Dhevan",
+              "last_name": "Muhamad Anthareza",
+              "username": "dhevanthareza",
+              "type": "private"
+            },
+            "date": 1766209060,
+            "text": "bakso terakhir di sheet Pengeluaran Q4/2025"
+          }
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Tanya",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tanya": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Start": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        []
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Create sheet": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Create sheet",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parser1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Parser",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser1": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baca barang kuartal kemarin": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tanya",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Baca barang kuartal ini": {
+      "ai_tool": [
+        [
+          {
+            "node": "Tanya",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Tanya",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7ee4fb7b-fb67-4dda-9934-e4efc472e392",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "46382cc551bf2a83dfa730d995ef82fe73b0579b4a441a6890588fbffcb8bf2f"
+  },
+  "id": "a2yz1G45gS7UxdtX",
+  "tags": []
+}

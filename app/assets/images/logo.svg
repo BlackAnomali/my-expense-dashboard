@@ -1,0 +1,6 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#3B82F6"/>
+  <path d="M256 120c-75 0-136 61-136 136s61 136 136 136 136-61 136-136-61-136-136-136zm0 240c-57 0-104-47-104-104s47-104 104-104 104 47 104 104-47 104-104 104z" fill="white"/>
+  <path d="M256 200c-31 0-56 25-56 56s25 56 56 56 56-25 56-56-25-56-56-56zm0 80c-13 0-24-11-24-24s11-24 24-24 24 11 24 24-11 24-24 24z" fill="white"/>
+  <text x="256" y="320" text-anchor="middle" fill="white" font-family="Arial" font-size="32" font-weight="bold">€</text>
+</svg>

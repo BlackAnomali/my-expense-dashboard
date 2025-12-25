@@ -1,0 +1,24 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.dm20.cashmail",
+      "sha256_cert_fingerprints": [
+        "9D:5D:04:E0:F0:B6:55:6B:60:09:B7:D2:C8:B2:06:AF:18:D3:CE:54:B3:38:47:6E:A8:AE:35:4A:26:13:B4:75",
+        "AD:E0:05:7E:9F:6D:AE:F8:7B:1F:4C:BF:53:02:AD:53:CA:FF:A0:63:64:8F:A8:30:4D:96:E4:4C:9B:AC:72:B5",
+        "30:6F:4A:41:1B:1D:8B:C9:2C:92:4C:77:E2:E8:19:8D:50:D7:9B:A5:93:08:57:87:63:3D:B3:BB:ED:A5:72:B3"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.dm20.cashmail.dev",
+      "sha256_cert_fingerprints": [
+        "63:EE:D5:E0:F3:F0:F3:5B:03:F0:40:3D:1B:74:B6:BA:00:44:32:8D:76:4D:61:8C:F6:31:52:32:5F:DA:E8:A9"
+      ]
+    }
+  }
+]

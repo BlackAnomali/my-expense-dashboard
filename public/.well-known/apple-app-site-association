@@ -1,0 +1,29 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appIDs": [
+          "8FUCZDKCKL.com.directmail2.cash4mail"
+        ],
+        "paths": [
+          "/app-link/*",
+          "/app-link-dev/*"
+        ],
+        "components": [
+          {
+            "/": "/app-link/*"
+          },
+          {
+            "/": "/app-link-dev/*"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "8FUCZDKCKL.com.directmail2.cash4mail"
+    ]
+  }
+}

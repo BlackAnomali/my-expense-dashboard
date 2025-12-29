@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { parse, isValid } from 'date-fns';
 
-// Helper: Membersihkan format Rupiah (Rp 10.000 -> 10000)
 const parseRupiahValue = (value) => {
   if (!value) return 0;
   const str = value.toString();
@@ -10,7 +9,6 @@ const parseRupiahValue = (value) => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
-// Helper: Memastikan tanggal terbaca dengan benar
 const parseIndonesianDate = (dateStr) => {
   if (!dateStr) return null;
   const formats = ['dd/MM/yyyy', 'dd-MM-yyyy', 'yyyy-MM-dd'];
@@ -37,37 +35,45 @@ export const useExpenseStore = defineStore("expense", {
     totalSpent: (state) => state.filteredData.reduce((sum, item) => sum + (item.totalPrice || 0), 0),
     dailySpending: (state) => {
       const daily = {};
+      // PENGAMAN SSR: Jika data kosong, langsung balikkan array kosong
+      if (!state.filteredData || state.filteredData.length === 0) return [];
+
       state.filteredData.forEach(item => {
-        const date = item.rawDate.toISOString().split('T')[0];
-        daily[date] = (daily[date] || 0) + item.totalPrice;
+        // Gunakan Optional Chaining (?.) agar tidak crash jika item/rawDate undefined
+        const dateObj = item?.rawDate;
+        if (dateObj instanceof Date && !isNaN(dateObj)) {
+          const date = dateObj.toISOString().split('T')[0];
+          daily[date] = (daily[date] || 0) + (item.totalPrice || 0);
+        }
       });
-      return Object.entries(daily).map(([date, total]) => ({ date, total })).sort((a, b) => new Date(a.date) - new Date(b.date));
+      return Object.entries(daily)
+        .map(([date, total]) => ({ date, total }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     }
   },
 
   actions: {
-async fetchData() {
+    async fetchData() {
       this.isLoading = true;
       try {
-        // Link yang sudah terbukti bisa dibuka
         const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ1bcV0WpNrGn6YzAepGIIeIlhONT-XqX0itGfEchgRLNkL91g2gvJcu-JQFS4EtVkdQt0-6-l-aRrI/pub?gid=0&single=true&output=csv";
         
         const response = await fetch(url);
         const text = await response.text();
         
-        if (!text || text.trim() === "") {
+        if (!text || text.trim() === "" || text.includes('<!DOCTYPE html>')) {
           this.allData = [];
           return;
         }
 
-        const rows = text.split('\n').map(row => row.split(',').map(cell => cell.replace(/"/g, '')));
+        const rows = text.split('\n').map(row => row.split(',').map(cell => cell.replace(/"/g, '').trim()));
         
-        if (!rows || rows.length === 0 || !rows[0]) {
+        if (!rows || rows.length < 2 || !rows[0]) {
           this.allData = [];
           return;
         }
 
-        const headers = rows[0];
+        const headers = rows[0].map(h => h.trim().toLowerCase());
         const newData = [];
 
         for (let i = 1; i < rows.length; i++) {
@@ -75,21 +81,19 @@ async fetchData() {
           if (!row || row.length < headers.length) continue;
 
           const rowData = {};
-          headers.forEach((header, index) => { 
-            rowData[header.trim()] = row[index]; 
-          });
+          headers.forEach((header, index) => { rowData[header] = row[index]; });
 
-          const dateStr = rowData['Tanggal'];
+          const dateStr = rowData['tanggal'];
           const parsedDate = parseIndonesianDate(dateStr);
 
           if (parsedDate) {
             newData.push({
               id: i,
               tanggal: dateStr,
-              name: rowData['Name'] || "Tanpa Nama",
-              totalPrice: parseRupiahValue(rowData['Total']),
-              Category: rowData['Jenis'] || "Lainnya",
-              shop: rowData['Shop'] || "-",
+              name: rowData['name'] || "Tanpa Nama",
+              totalPrice: parseRupiahValue(rowData['total']),
+              Category: rowData['jenis'] || "Lainnya",
+              shop: rowData['shop'] || "-",
               rawDate: parsedDate
             });
           }
@@ -102,14 +106,15 @@ async fetchData() {
       } finally {
         this.isLoading = false;
       }
-    }, // <--- Cek apakah tanda kurung dan koma ini sudah benar
+    },
 
     extractCategories() {
+      if (!this.allData) return;
       this.categories = Array.from(new Set(this.allData.map(i => i.Category).filter(Boolean))).sort();
     },
 
     applyFilters() {
-      let filtered = this.allData;
+      let filtered = [...this.allData];
       if (this.dateRange.from && this.dateRange.to) {
         filtered = filtered.filter(i => i.rawDate >= this.dateRange.from && i.rawDate <= this.dateRange.to);
       }

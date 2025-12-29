@@ -1,13 +1,17 @@
 import tailwindcss from "@tailwindcss/vite";
 
 export default defineNuxtConfig({
+  // Menonaktifkan SSR agar data Google Sheets diproses di browser (mengatasi Error 500)
+  ssr: false,
+
   compatibilityDate: "2025-07-15",
   devtools: { enabled: true },
   css: ["~/assets/css/tailwind.css"],
+  
   vite: {
     plugins: [tailwindcss()],
   },
-  // Add the PWA module here!
+
   modules: ["shadcn-nuxt", "@pinia/nuxt", "@vite-pwa/nuxt"],
 
   shadcn: {
@@ -17,13 +21,11 @@ export default defineNuxtConfig({
 
   pwa: {
     registerType: "autoUpdate",
-    // Explicitly enable manifest
-    includeManifestIcons: false, // We'll handle icons manually
+    includeManifestIcons: false, 
     manifest: {
       name: "Expense Tracker",
       short_name: "ExpenseApp",
-      description:
-        "Personal expense tracking application with insights and analytics",
+      description: "Personal expense tracking application with insights and analytics",
       theme_color: "#3B82F6",
       background_color: "#ffffff",
       display: "standalone",
@@ -59,21 +61,15 @@ export default defineNuxtConfig({
       type: "module",
     },
   },
+
   runtimeConfig: {
     public: {
-      // Menggunakan string kosong sebagai fallback agar tidak undefined
+      // Fallback string kosong mencegah error 'undefined'
       googleSheetId: process.env.GOOGLE_SHEET_ID || '',
       googleApiKey: process.env.GOOGLE_API_KEY || '',
     },
   },
 
-  export default defineNuxtConfig({
-  // ... kode lainnya
-  ssr:  false, 
-  // ...
-})
-
- // ... kode sebelumnya
   app: {
     head: {
       viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
@@ -86,7 +82,7 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-        // HAPUS baris manifest di sini, biarkan modul PWA yang buat otomatis
+        // Manifest ditangani otomatis oleh @vite-pwa/nuxt
       ],
     },
   },

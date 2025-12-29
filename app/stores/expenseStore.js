@@ -55,26 +55,54 @@ export const useExpenseStore = defineStore("expense", {
       await this.fetchData();
     },
 
-    async fetchData() {
+  async fetchData() {
       this.isLoading = true;
       try {
         const config = useRuntimeConfig();
         const sheetId = config.public.googleSheetId;
-        // Mengambil data via CSV (Metode Publish to Web)
+        
+        // 1. Validasi awal agar tidak error jika config kosong
+        if (!sheetId) {
+          console.error("Sheet ID tidak ditemukan di Environment Variables");
+          return;
+        }
+
         const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Pengeluaran%20Q4/2025`;
         
         const response = await fetch(url);
+        if (!response.ok) throw new Error("Gagal fetch data dari Google");
+        
         const text = await response.text();
         
-        // Parsing CSV sederhana
-        const rows = text.split('\n').map(row => row.split(',').map(cell => cell.replace(/"/g, '')));
+        // 2. Cek apakah teks CSV ada isinya
+        if (!text || text.trim() === "") {
+          this.allData = [];
+          return;
+        }
+
+        const rows = text.split('\n')
+                        .map(row => row.split(',')
+                        .map(cell => cell.replace(/"/g, '')));
+
+        // 3. PENGAMAN UTAMA: Cek apakah rows[0] ada sebelum diakses
+        if (!rows || rows.length === 0 || !rows[0]) {
+          this.allData = [];
+          return;
+        }
+
         const headers = rows[0];
         const newData = [];
 
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
+          
+          // Pastikan baris memiliki data yang cukup sebelum diproses
+          if (!row || row.length < headers.length) continue;
+
           const rowData = {};
-          headers.forEach((header, index) => { rowData[header] = row[index]; });
+          headers.forEach((header, index) => { 
+            rowData[header] = row[index] || ""; 
+          });
 
           const dateStr = rowData['Tanggal'];
           const parsedDate = parseIndonesianDate(dateStr);
@@ -83,19 +111,21 @@ export const useExpenseStore = defineStore("expense", {
             newData.push({
               id: i,
               tanggal: dateStr,
-              name: rowData['Name'],
+              name: rowData['Name'] || "Tanpa Nama",
               totalPrice: parseRupiahValue(rowData['Total']),
-              Category: rowData['Jenis'],
-              shop: rowData['Shop'],
+              Category: rowData['Jenis'] || "Lainnya",
+              shop: rowData['Shop'] || "-",
               rawDate: parsedDate
             });
           }
         }
+        
         this.allData = newData;
         this.extractCategories();
         this.applyFilters();
       } catch (error) {
         console.error("Gagal mengambil data:", error);
+        this.allData = []; // Reset agar UI tidak crash
       } finally {
         this.isLoading = false;
       }

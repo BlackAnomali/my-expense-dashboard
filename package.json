@@ -12,6 +12,7 @@
   "dependencies": {
     "@pinia/nuxt": "0.11.3",
     "@tanstack/vue-table": "^8.21.3",
+    "@types/node": "^25.0.3",
     "@vite-pwa/nuxt": "^1.1.0",
     "@vueuse/core": "^14.1.0",
     "chart.js": "^4.5.1",

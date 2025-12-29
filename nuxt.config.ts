@@ -61,13 +61,15 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      googleSheetId: process.env.GOOGLE_SHEET_ID,
-      googleApiKey: process.env.GOOGLE_API_KEY,
+      // Menggunakan string kosong sebagai fallback agar tidak undefined
+      googleSheetId: process.env.GOOGLE_SHEET_ID || '',
+      googleApiKey: process.env.GOOGLE_API_KEY || '',
     },
   },
 
   ssr: false,
 
+ // ... kode sebelumnya
   app: {
     head: {
       viewport: "width=device-width, initial-scale=1, viewport-fit=cover",
@@ -80,7 +82,7 @@ export default defineNuxtConfig({
       ],
       link: [
         { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
-        { rel: "manifest", href: "/manifest.webmanifest" },
+        // HAPUS baris manifest di sini, biarkan modul PWA yang buat otomatis
       ],
     },
   },

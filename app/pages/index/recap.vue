@@ -37,7 +37,7 @@
 import { onMounted, computed } from "vue";
 import DataTable from "@/components/DataTable.vue";
 import ExpenseFilters from "@/components/ExpenseFilters.vue";
-import { useExpenseStore } from "@/stores/expenseStore";
+import { useExpenseStore } from "@/store/expenseStore";
 
 const expenseStore = useExpenseStore();
 

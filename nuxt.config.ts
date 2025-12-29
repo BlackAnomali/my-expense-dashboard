@@ -67,7 +67,11 @@ export default defineNuxtConfig({
     },
   },
 
-  ssr: false,
+  export default defineNuxtConfig({
+  // ... kode lainnya
+  ssr:  false, 
+  // ...
+})
 
  // ... kode sebelumnya
   app: {

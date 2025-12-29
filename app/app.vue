@@ -12,11 +12,14 @@
 </template>
 
 <script setup>
-import { useExpenseStore } from '~/store/expenseStore'
+// Nuxt 4 biasanya sudah auto-import onMounted, 
+// tapi jika error 'onMounted is not defined', tambahkan baris di bawah ini:
+// import { onMounted } from 'vue' 
+
+import { useExpenseStore } from '~/store/expenseStore' // Pastikan ini TANPA 'S'
 
 const expenseStore = useExpenseStore()
 
-// Ambil data cukup satu kali di sini saat aplikasi pertama kali dibuka
 onMounted(async () => {
   try {
     await expenseStore.fetchData()

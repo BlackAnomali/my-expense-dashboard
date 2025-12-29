@@ -9,7 +9,7 @@
 </template>
 
 <script setup>
-import { useExpenseStore } from '~/stores/expenseStore'
+import { useExpenseStore } from '~/store/expenseStore'
 
 const expenseStore = useExpenseStore()
 

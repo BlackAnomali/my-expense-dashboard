@@ -46,45 +46,22 @@ export const useExpenseStore = defineStore("expense", {
   },
 
   actions: {
-    async initialize() {
-      const now = new Date();
-      this.dateRange = {
-        from: new Date(now.getFullYear(), now.getMonth(), 1),
-        to: new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      };
-      await this.fetchData();
-    },
-
 async fetchData() {
       this.isLoading = true;
       try {
-        const config = useRuntimeConfig();
-        const sheetId = config.public.googleSheetId;
-        
-        // 1. Validasi awal agar tidak error jika config kosong
-        if (!sheetId) {
-          console.error("Sheet ID tidak ditemukan di Environment Variables");
-          return;
-        }
-
-        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&sheet=Pengeluaran%20Q4/2025`;
+        // Link yang sudah terbukti bisa dibuka
+        const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ1bcV0WpNrGn6YzAepGIIeIlhONT-XqX0itGfEchgRLNkL91g2gvJcu-JQFS4EtVkdQt0-6-l-aRrI/pub?gid=0&single=true&output=csv";
         
         const response = await fetch(url);
-        if (!response.ok) throw new Error("Gagal fetch data dari Google");
-        
         const text = await response.text();
         
-        // 2. Cek apakah teks CSV ada isinya
         if (!text || text.trim() === "") {
           this.allData = [];
           return;
         }
 
-        const rows = text.split('\n')
-                        .map(row => row.split(',')
-                        .map(cell => cell.replace(/"/g, '')));
-
-        // 3. PENGAMAN UTAMA: Cek apakah rows[0] ada sebelum diakses
+        const rows = text.split('\n').map(row => row.split(',').map(cell => cell.replace(/"/g, '')));
+        
         if (!rows || rows.length === 0 || !rows[0]) {
           this.allData = [];
           return;
@@ -95,13 +72,11 @@ async fetchData() {
 
         for (let i = 1; i < rows.length; i++) {
           const row = rows[i];
-          
-          // Pastikan baris memiliki data yang cukup sebelum diproses
           if (!row || row.length < headers.length) continue;
 
           const rowData = {};
           headers.forEach((header, index) => { 
-            rowData[header] = row[index] || ""; 
+            rowData[header.trim()] = row[index]; 
           });
 
           const dateStr = rowData['Tanggal'];
@@ -119,17 +94,15 @@ async fetchData() {
             });
           }
         }
-        
         this.allData = newData;
         this.extractCategories();
         this.applyFilters();
       } catch (error) {
         console.error("Gagal mengambil data:", error);
-        this.allData = []; // Reset agar UI tidak crash
       } finally {
         this.isLoading = false;
       }
-    },
+    }, // <--- Cek apakah tanda kurung dan koma ini sudah benar
 
     extractCategories() {
       this.categories = Array.from(new Set(this.allData.map(i => i.Category).filter(Boolean))).sort();

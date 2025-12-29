@@ -31,9 +31,8 @@ export const useExpenseStore = defineStore('expense', {
     async fetchData() {
       this.isLoading = true
       try {
-        // GANTI URL INI dengan link CSV Google Sheets kamu yang baru jika perlu
         const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7YgN_O-M437C-p29NH-santas-projects-bf2b56a5/pub?output=csv'
-        const response = await fetch(url)
+        const response = await fetch(`${url}&t=${new Date().getTime()}`) // Tambahan agar data selalu segar (no-cache)
         const csvText = await response.text()
         
         const lines = csvText.split('\n').map(line => line.split(','))
@@ -43,7 +42,6 @@ export const useExpenseStore = defineStore('expense', {
           const obj = {}
           headers.forEach((header, i) => {
             let val = row[i]?.trim() || ''
-            // Pembersih Angka: Hapus Rp, titik ribuan, dan spasi
             if (header === 'totalPrice' || header === 'pricePerUnit') {
               val = val.replace(/Rp/g, '').replace(/\./g, '').replace(/\s/g, '').replace(/,/g, '.')
             }
@@ -61,7 +59,12 @@ export const useExpenseStore = defineStore('expense', {
       }
     },
 
-    // Fungsi yang tadi error karena tidak ada:
+    // INI FUNGSI YANG MEMPERBAIKI TOMBOL REFRESH
+    async refreshData() {
+      await this.fetchData()
+    },
+
+    // INI FUNGSI YANG MEMPERBAIKI ERROR DATE RANGE
     updateDateRange(from, to) {
       this.dateRange = { from, to }
       this.applyFilters()
@@ -72,24 +75,17 @@ export const useExpenseStore = defineStore('expense', {
       this.applyFilters()
     },
 
-    async refreshData() {
-      await this.fetchData()
-    },
-
     applyFilters() {
       let filtered = [...this.allData]
-
       if (this.selectedCategory !== 'all') {
         filtered = filtered.filter(item => item.Category === this.selectedCategory)
       }
-
       if (this.dateRange.from && this.dateRange.to) {
         filtered = filtered.filter(item => {
           const itemDate = new Date(item.tanggal)
           return itemDate >= this.dateRange.from && itemDate <= this.dateRange.to
         })
       }
-
       this.filteredData = filtered
     }
   }

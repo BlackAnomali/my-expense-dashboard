@@ -6,17 +6,12 @@
         <p class="text-lg animate-pulse text-blue-600 font-medium">Sinkronisasi Database...</p>
       </div>
     </div>
-    
     <NuxtPage v-else />
   </div>
 </template>
 
 <script setup>
-// Nuxt 4 biasanya sudah auto-import onMounted, 
-// tapi jika error 'onMounted is not defined', tambahkan baris di bawah ini:
-// import { onMounted } from 'vue' 
-
-import { useExpenseStore } from '~/store/expenseStore' // Pastikan ini TANPA 'S'
+import { useExpenseStore } from '~/store/expenseStore'
 
 const expenseStore = useExpenseStore()
 

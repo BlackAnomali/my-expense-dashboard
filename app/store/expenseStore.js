@@ -1,127 +1,96 @@
-import { defineStore } from "pinia";
-import { parse, isValid } from 'date-fns';
+import { defineStore } from 'pinia'
 
-const parseRupiahValue = (value) => {
-  if (!value) return 0;
-  const str = value.toString();
-  const cleanValue = str.replace(/Rp/gi, '').replace(/\s+/g, '').replace(/\./g, '').replace(/,/g, '.').trim();
-  const parsed = parseFloat(cleanValue);
-  return isNaN(parsed) ? 0 : parsed;
-};
-
-const parseIndonesianDate = (dateStr) => {
-  if (!dateStr) return null;
-  const formats = ['dd/MM/yyyy', 'dd-MM-yyyy', 'yyyy-MM-dd'];
-  for (const fmt of formats) {
-    try {
-      const date = parse(dateStr.trim(), fmt, new Date());
-      if (isValid(date)) return date;
-    } catch (e) {}
-  }
-  return null;
-}
-
-export const useExpenseStore = defineStore("expense", {
+export const useExpenseStore = defineStore('expense', {
   state: () => ({
     allData: [],
     filteredData: [],
-    categories: [],
     isLoading: false,
-    dateRange: { from: null, to: null },
-    selectedCategory: "all"
+    selectedCategory: 'all',
+    dateRange: { from: null, to: null }
   }),
 
   getters: {
-    totalSpent: (state) => state.filteredData.reduce((sum, item) => sum + (item.totalPrice || 0), 0),
+    categories: (state) => {
+      const cats = state.allData.map(item => item.Category).filter(Boolean)
+      return [...new Set(cats)]
+    },
+    totalSpent: (state) => {
+      return state.filteredData.reduce((sum, item) => sum + (Number(item.totalPrice) || 0), 0)
+    },
     dailySpending: (state) => {
-      const daily = {};
-      // PENGAMAN SSR: Jika data kosong, langsung balikkan array kosong
-      if (!state.filteredData || state.filteredData.length === 0) return [];
-
-      state.filteredData.forEach(item => {
-        // Gunakan Optional Chaining (?.) agar tidak crash jika item/rawDate undefined
-        const dateObj = item?.rawDate;
-        if (dateObj instanceof Date && !isNaN(dateObj)) {
-          const date = dateObj.toISOString().split('T')[0];
-          daily[date] = (daily[date] || 0) + (item.totalPrice || 0);
-        }
-      });
-      return Object.entries(daily)
-        .map(([date, total]) => ({ date, total }))
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      const groups = state.filteredData.reduce((acc, item) => {
+        const date = item.tanggal
+        acc[date] = (acc[date] || 0) + (Number(item.totalPrice) || 0)
+        return acc
+      }, {})
+      return Object.entries(groups).map(([date, total]) => ({ date, total }))
     }
   },
 
   actions: {
     async fetchData() {
-      this.isLoading = true;
+      this.isLoading = true
       try {
-        const url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ1bcV0WpNrGn6YzAepGIIeIlhONT-XqX0itGfEchgRLNkL91g2gvJcu-JQFS4EtVkdQt0-6-l-aRrI/pub?gid=0&single=true&output=csv";
+        // GANTI URL INI dengan link CSV Google Sheets kamu yang baru jika perlu
+        const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vS7YgN_O-M437C-p29NH-santas-projects-bf2b56a5/pub?output=csv'
+        const response = await fetch(url)
+        const csvText = await response.text()
         
-        const response = await fetch(url);
-        const text = await response.text();
+        const lines = csvText.split('\n').map(line => line.split(','))
+        const headers = lines[0].map(h => h.trim())
         
-        if (!text || text.trim() === "" || text.includes('<!DOCTYPE html>')) {
-          this.allData = [];
-          return;
-        }
+        const data = lines.slice(1).map(row => {
+          const obj = {}
+          headers.forEach((header, i) => {
+            let val = row[i]?.trim() || ''
+            // Pembersih Angka: Hapus Rp, titik ribuan, dan spasi
+            if (header === 'totalPrice' || header === 'pricePerUnit') {
+              val = val.replace(/Rp/g, '').replace(/\./g, '').replace(/\s/g, '').replace(/,/g, '.')
+            }
+            obj[header] = val
+          })
+          return obj
+        })
 
-        const rows = text.split('\n').map(row => row.split(',').map(cell => cell.replace(/"/g, '').trim()));
-        
-        if (!rows || rows.length < 2 || !rows[0]) {
-          this.allData = [];
-          return;
-        }
-
-        const headers = rows[0].map(h => h.trim().toLowerCase());
-        const newData = [];
-
-        for (let i = 1; i < rows.length; i++) {
-          const row = rows[i];
-          if (!row || row.length < headers.length) continue;
-
-          const rowData = {};
-          headers.forEach((header, index) => { rowData[header] = row[index]; });
-
-          const dateStr = rowData['tanggal'];
-          const parsedDate = parseIndonesianDate(dateStr);
-
-          if (parsedDate) {
-            newData.push({
-              id: i,
-              tanggal: dateStr,
-              name: rowData['name'] || "Tanpa Nama",
-              totalPrice: parseRupiahValue(rowData['total']),
-              Category: rowData['jenis'] || "Lainnya",
-              shop: rowData['shop'] || "-",
-              rawDate: parsedDate
-            });
-          }
-        }
-        this.allData = newData;
-        this.extractCategories();
-        this.applyFilters();
+        this.allData = data
+        this.applyFilters()
       } catch (error) {
-        console.error("Gagal mengambil data:", error);
+        console.error('Gagal tarik data Sheets:', error)
       } finally {
-        this.isLoading = false;
+        this.isLoading = false
       }
     },
 
-    extractCategories() {
-      if (!this.allData) return;
-      this.categories = Array.from(new Set(this.allData.map(i => i.Category).filter(Boolean))).sort();
+    // Fungsi yang tadi error karena tidak ada:
+    updateDateRange(from, to) {
+      this.dateRange = { from, to }
+      this.applyFilters()
+    },
+
+    updateCategory(category) {
+      this.selectedCategory = category
+      this.applyFilters()
+    },
+
+    async refreshData() {
+      await this.fetchData()
     },
 
     applyFilters() {
-      let filtered = [...this.allData];
+      let filtered = [...this.allData]
+
+      if (this.selectedCategory !== 'all') {
+        filtered = filtered.filter(item => item.Category === this.selectedCategory)
+      }
+
       if (this.dateRange.from && this.dateRange.to) {
-        filtered = filtered.filter(i => i.rawDate >= this.dateRange.from && i.rawDate <= this.dateRange.to);
+        filtered = filtered.filter(item => {
+          const itemDate = new Date(item.tanggal)
+          return itemDate >= this.dateRange.from && itemDate <= this.dateRange.to
+        })
       }
-      if (this.selectedCategory !== "all") {
-        filtered = filtered.filter(i => i.Category === this.selectedCategory);
-      }
-      this.filteredData = filtered;
+
+      this.filteredData = filtered
     }
   }
-});
+})

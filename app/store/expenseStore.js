@@ -35,7 +35,7 @@ export const useExpenseStore = defineStore('expense', {
     async fetchData() {
       this.isLoading = true
       try {
-        const url = 'https://docs.google.com/spreadsheets/d/1vA2NR2fXQ6MPvKe4R_tF2ALYKJ4xjBbXgs54xTuk5BM/edit?gid=0#gid=0'
+        const url = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ1bcV0WpNrGn6YzAepGIIeIlhONT-XqX0itGfEchgRLNkL91g2gvJcu-JQFS4EtVkdQt0-6-l-aRrI/pub?gid=0&single=true&output=csv'
         const response = await fetch(`${url}&t=${new Date().getTime()}`)
         const csvText = await response.text()
         

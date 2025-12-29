@@ -125,7 +125,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useExpenseStore } from '@/stores/expenseStore'
+import { useExpenseStore } from '@/store/expenseStore'
 import { RotateCcw, Loader2 } from 'lucide-vue-next'
 
 const expenseStore = useExpenseStore()

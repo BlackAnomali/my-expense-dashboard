@@ -55,7 +55,7 @@ export const useExpenseStore = defineStore("expense", {
       await this.fetchData();
     },
 
-  async fetchData() {
+async fetchData() {
       this.isLoading = true;
       try {
         const config = useRuntimeConfig();
